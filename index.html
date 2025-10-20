@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>誕生日謎解き</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+
+  body {
+    font-family: 'Orbitron', sans-serif;
+    background: radial-gradient(circle at top, #0a0a1a, #000);
+    color: #00ffe0;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 2em;
+    margin-top: 30px;
+    color: #00ffd5;
+    text-shadow: 0 0 8px #00ffcc;
+  }
+
+  .question-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 15px;
+    justify-items: center;
+    margin: 40px auto;
+    width: 90%;
+    max-width: 400px;
+  }
+
+  .question-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .question-btn {
+    width: 160px;
+    padding: 15px;
+    font-size: 1.2em;
+    background: transparent;
+    border: 2px solid #00ffff;
+    border-radius: 10px;
+    color: #00ffff;
+    cursor: pointer;
+    text-shadow: 0 0 8px #00ffff;
+    transition: transform 0.2s, background 0.3s;
+  }
+
+  .question-btn:hover {
+    transform: scale(1.05);
+    background: rgba(0, 255, 255, 0.15);
+  }
+
+  .msg {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #ffcc00;
+    text-shadow: 0 0 8px #ffcc00;
+    min-height: 1.2em;
+  }
+
+  .container {
+    display: none;
+    margin-top: 40px;
+  }
+
+  input {
+    font-size: 1.2em;
+    padding: 10px;
+    margin: 20px;
+    border-radius: 8px;
+    border: 2px solid #00ffff;
+    background: #000;
+    color: #00ffff;
+  }
+
+  button {
+    font-size: 1.1em;
+    padding: 12px 30px;
+    margin: 10px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #002244, #004466);
+    color: #00ffff;
+    cursor: pointer;
+    text-shadow: 0 0 5px #00e0ff;
+  }
+
+  button:hover {
+    background: linear-gradient(145deg, #004466, #007799);
+  }
+
+  .result {
+    display: none;
+    font-size: 2em;
+    margin-top: 100px;
+  }
+</style>
+</head>
+<body>
+
+  <h1>🎂 誕生日謎解き 🎂</h1>
+
+  <div id="home" class="container" style="display:block;">
+    <div class="question-grid" id="questionGrid"></div>
+  </div>
+
+  <div id="questionPage" class="container">
+    <h2 id="questionText"></h2>
+    <input id="answerInput" type="text" placeholder="答えを入力">
+    <div>
+      <button onclick="checkAnswer()">判定</button>
+      <button onclick="goHome()">問題選択に戻る</button>
+    </div>
+  </div>
+
+  <div id="resultScreen" class="container">
+    <h2 id="resultText"></h2>
+    <p id="resultMsg"></p>
+    <p>画面をタップしてホームに戻る</p>
+  </div>
+
+<script>
+const problems = [
+  { id: 1, q: "川にいる嘘つきの動物は？（カタカナで）", a: "カワウソ", msg: "タテ１：ハワイの楽器" },
+  { id: 2, q: "伝言ゲーム。1人に1分、一度に1人。7人目まで伝えるのに最短何分？", a: "3", msg: "タテ２：無視すること" },
+  { id: 3, q: "豚にはSNJ、馬にはNNBT、猫には？（大文字で）", a: "KBN", msg: "タテ３：海のゆりかご" },
+  { id: 4, q: "1+5＝9、2+0＝8のとき、3+9＝？", a: "9", msg: "タテ：集めてあげるとエビみたいな味がするちいさい生き物" },
+  { id: 5, q: "回文を作ろう。まま〇わ〇〇に〇〇わ〇まま。", a: "ままがわたしにしたわがまま", msg: "ヨコ１：雨から身を守るさすもの" },
+  { id: 6, q: "地球上でもっとも大きな「かげ」とは？（ひらがな2文字）", a: "よる", msg: "ヨコ２：時間旅行したり悪魔の箱を開けたりする人" },
+  { id: 7, q: "幕は目印、鳩は心臓、なら茄子は？（漢字で）", a: "看護師", msg: "ヨコ３：団子を作るための粉" }
+];
+
+let current = null;
+let solved = JSON.parse(localStorage.getItem("solved")) || {};
+
+function renderHome() {
+  const grid = document.getElementById("questionGrid");
+  grid.innerHTML = "";
+  problems.forEach(p => {
+    const box = document.createElement("div");
+    box.className = "question-box";
+    const btn = document.createElement("button");
+    btn.textContent = `QUESTION ${p.id}`;
+    btn.className = "question-btn";
+    btn.onclick = () => openQuestion(p.id);
+    box.appendChild(btn);
+
+    const msg = document.createElement("div");
+    msg.className = "msg";
+    msg.textContent = solved[p.id] ? `✅ ${p.msg}` : "";
+    box.appendChild(msg);
+
+    grid.appendChild(box);
+  });
+  if (grid.children.length % 2 !== 0) {
+    grid.lastElementChild.style.gridColumn = "1 / span 1";
+  }
+}
+
+function openQuestion(id) {
+  current = problems.find(p => p.id === id);
+  document.getElementById("home").style.display = "none";
+  document.getElementById("questionPage").style.display = "block";
+  document.getElementById("questionText").textContent = current.q;
+  document.getElementById("answerInput").value = "";
+}
+
+function checkAnswer() {
+  const ans = document.getElementById("answerInput").value.trim();
+  if (ans === current.a) {
+    solved[current.id] = true;
+    localStorage.setItem("solved", JSON.stringify(solved));
+    showResult(true);
+  } else {
+    alert("❌ 不正解です。もう一度挑戦してみましょう！");
+  }
+}
+
+function showResult(isCorrect) {
+  document.getElementById("questionPage").style.display = "none";
+  const result = document.getElementById("resultScreen");
+  const text = document.getElementById("resultText");
+  const msg = document.getElementById("resultMsg");
+  result.style.display = "block";
+  text.textContent = "🎯 正解！";
+  msg.textContent = current.msg;
+  result.onclick = () => {
+    result.style.display = "none";
+    goHome();
+  };
+}
+
+function goHome() {
+  document.getElementById("home").style.display = "block";
+  document.getElementById("questionPage").style.display = "none";
+  document.getElementById("resultScreen").style.display = "none";
+  renderHome();
+}
+
+renderHome();
+</script>
+</body>
+</html>
